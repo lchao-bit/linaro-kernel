@@ -205,7 +205,7 @@ static void __ieee80211_sta_join_ibss(struct ieee80211_sub_if_data *sdata,
 	mod_timer(&ifibss->timer,
 		  round_jiffies(jiffies + IEEE80211_IBSS_MERGE_INTERVAL));
 
-	bss = cfg80211_inform_bss_frame(local->hw.wiphy, local->hw.conf.channel,
+	bss = cfg80211_inform_bss_frame(local->hw.wiphy, chan,
 					mgmt, skb->len, 0, GFP_KERNEL);
 	cfg80211_put_bss(bss);
 	netif_carrier_on(sdata->dev);
@@ -425,7 +425,7 @@ struct sta_info *ieee80211_ibss_add_sta(struct ieee80211_sub_if_data *sdata,
 	struct ieee80211_if_ibss *ifibss = &sdata->u.ibss;
 	struct ieee80211_local *local = sdata->local;
 	struct sta_info *sta;
-	int band = local->hw.conf.channel->band;
+	int band = local->oper_channel->band;
 
 	/*
 	 * XXX: Consider removing the least recently used entry and
@@ -651,7 +651,7 @@ static void ieee80211_sta_find_ibss(struct ieee80211_sub_if_data *sdata)
 			}
 			printk(KERN_DEBUG "%s: IBSS not allowed on"
 			       " %d MHz\n", sdata->name,
-			       local->hw.conf.channel->center_freq);
+				   local->oper_channel->center_freq);
 
 			/* No IBSS found - decrease scan interval and continue
 			 * scanning. */
