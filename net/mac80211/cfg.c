@@ -488,6 +488,32 @@ static void ieee80211_config_ap_ssid(struct ieee80211_sub_if_data *sdata,
 		(params->hidden_ssid != NL80211_HIDDEN_SSID_NOT_IN_USE);
 }
 
+
+static int ieee80211_set_probe_resp(struct ieee80211_sub_if_data *sdata,
+				    u8 *resp, size_t resp_len)
+{
+	struct sk_buff *new, *old;
+
+	if (!resp || !resp_len)
+		return -EINVAL;
+
+	old = sdata->u.ap.probe_resp;
+
+	new = dev_alloc_skb(resp_len);
+	if (!new)
+		return -ENOMEM;
+
+	memcpy(skb_put(new, resp_len), resp, resp_len);
+
+	rcu_assign_pointer(sdata->u.ap.probe_resp, new);
+	synchronize_rcu();
+
+	if (old)
+		dev_kfree_skb(old);
+	return 0;
+}
+
+
 /*
  * This handles both adding a beacon and setting new beacon info
  */
@@ -498,6 +524,7 @@ static int ieee80211_config_beacon(struct ieee80211_sub_if_data *sdata,
 	int new_head_len, new_tail_len;
 	int size;
 	int err = -EINVAL;
+	u32 changed = 0;
 
 	old = rtnl_dereference(sdata->u.ap.beacon);
 
@@ -580,12 +607,16 @@ static int ieee80211_config_beacon(struct ieee80211_sub_if_data *sdata,
 	synchronize_rcu();
 
 	kfree(old);
+	err = ieee80211_set_probe_resp(sdata, params->probe_resp,
+				       params->probe_resp_len);
+	if (!err)
+		changed |= BSS_CHANGED_AP_PROBE_RESP;
 
 	ieee80211_config_ap_ssid(sdata, params);
-
-	ieee80211_bss_info_change_notify(sdata, BSS_CHANGED_BEACON_ENABLED |
-						BSS_CHANGED_BEACON |
-						BSS_CHANGED_SSID);
+	changed |= BSS_CHANGED_BEACON_ENABLED |
+		   BSS_CHANGED_BEACON |
+		   BSS_CHANGED_SSID;
+	ieee80211_bss_info_change_notify(sdata, changed);
 	return 0;
 }
 
