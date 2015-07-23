@@ -460,7 +460,7 @@ struct ieee80211_if_ibss {
 	bool fixed_channel;
 	bool privacy;
 
-	u8 bssid[ETH_ALEN];
+	u8 bssid[ETH_ALEN] __aligned(2);
 	u8 ssid[IEEE80211_MAX_SSID_LEN];
 	u8 ssid_len, ie_len;
 	u8 *ie;
